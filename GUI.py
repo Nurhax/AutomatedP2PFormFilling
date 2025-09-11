@@ -185,14 +185,38 @@ def on_tree2_double_click(event):
 
 tree2.bind("<Double-1>", on_tree2_double_click)
 
-# --- Export button (does nothing yet) ---
+# --- Target Excel Form selection frame ---
+target_file_frame = Frame(frame, bg="#2e2e2e")
+target_file_frame.pack(anchor="w", pady=(0, 15))
+
+target_file_label = Label(target_file_frame, text="Select Target Excel Form:", bg="#2e2e2e", fg="#fff")
+target_file_label.pack(side=LEFT)
+
+target_selected_file = StringVar()
+
+def browse_target_file():
+    file_path = filedialog.askopenfilename(
+        initialdir=folderData,
+        title="Select target Excel form",
+        filetypes=(("Excel files", "*.xlsx;*.xls"), ("All files", "*.*"))
+    )
+    if file_path:
+        target_selected_file.set(file_path)
+
+target_file_entry = Entry(target_file_frame, textvariable=target_selected_file, width=50, state="readonly")
+target_file_entry.pack(side=LEFT, padx=(5, 5))
+
+target_browse_btn = Button(target_file_frame, text="Browse...", command=browse_target_file, bg="#444", fg="#fff",
+                          activebackground="#555", activeforeground="#fff")
+target_browse_btn.pack(side=LEFT, padx=(0, 10))
+
+# --- Export button as button (vertically aligned with target excel form selection) ---
 export_btn = Button(
-    frame, text="Export", bg="#444", fg="#fff",
+    target_file_frame, text="Export As", bg="#444", fg="#fff",
     activebackground="#555", activeforeground="#fff",
     font=("Arial", 12, "bold")
 )
-export_btn.pack(anchor="e", pady=(10, 0))
-
+export_btn.pack(side=LEFT, padx=(10, 0))
 
 # Style
 style = ttk.Style()
