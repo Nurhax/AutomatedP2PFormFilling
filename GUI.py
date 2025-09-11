@@ -2,11 +2,11 @@ import pandas as pd
 from tkinter import *
 from tkinter import ttk
 from Backend import *
+from tkinter import filedialog
 
+#Select file with open folder
 folderData = r"C:\KP\Python ENV\ExcelData"
 listFiles = list_files_in_folder(folderData)
-
-
 
 def load_data(data):
     # Clear existing data
@@ -23,30 +23,50 @@ root.configure(bg="#2e2e2e")
 frame = Frame(root, bg="#2e2e2e")
 frame.pack(padx=20, pady=20, fill="both", expand=True)
 
-# Assuming each item in dataTelesignal is a tuple/list of columns
+# Data from importing
 columns = [
     "A", "Time Stamp", "Miliseconds", "System time stamp", "System Miliseconds",
     "RTU Name", "B1", "B2", "B3", "Element", "Description", "Status", "Source",
     "Priority", "Tag", "Operator", "Message Class", "Comment", "User Comment", "SoE"
-]  # Replace with your actual column names
+]  
+
+# Actual needed data for export telesignal (TC)
+needed_data = [
+    "Time Stamp","Miliseconds", "B1", "B2", "B3", "RTU Name","Element", "Description", "Status", "Source",
+]
+
 
 # Create Treeview inside a container frame
 tree_frame = Frame(frame, bg="#2e2e2e")
 tree_frame.pack()
-
 
 # --- File selection frame ---
 file_frame = Frame(frame, bg="#2e2e2e")
 file_frame.pack(anchor="w", pady=(0, 15))
 
 # Label
-file_label = Label(file_frame, text="Select File:", bg="#2e2e2e", fg="#fff")
+file_label = Label(file_frame, text="Select HIS File:", bg="#2e2e2e", fg="#fff")
 file_label.pack(side=LEFT)
 
-# Combobox
+# File selection using file dialog
+
 selected_file = StringVar()
-file_combo = ttk.Combobox(file_frame, textvariable=selected_file, values=listFiles, state="readonly", width=50)
-file_combo.pack(side=LEFT, padx=(5, 10))
+
+def browse_file():
+    file_path = filedialog.askopenfilename(
+        initialdir=folderData,
+        title="Select file",
+        filetypes=(("Excel files", "*.ods"), ("All files", "*.*"))
+    )
+    if file_path:
+        selected_file.set(file_path)
+
+file_entry = Entry(file_frame, textvariable=selected_file, width=50, state="readonly")
+file_entry.pack(side=LEFT, padx=(5, 5))
+
+browse_btn = Button(file_frame, text="Browse...", command=browse_file, bg="#444", fg="#fff",
+                    activebackground="#555", activeforeground="#fff")
+browse_btn.pack(side=LEFT, padx=(0, 10))
 
 # Load button (beside Combobox)
 load_btn = Button(file_frame, text="Load Data", 
@@ -54,10 +74,43 @@ load_btn = Button(file_frame, text="Load Data",
                   bg="#444", fg="#fff", activebackground="#555", activeforeground="#fff")
 load_btn.pack(side=LEFT)
 
+# --- "+" button: Move selected rows from first table to second table ---
+
+# --- Prevent duplicates in second table ---
+def move_selected_to_second_table():
+    selected_items = tree.selection()
+    existing = set(tuple(tree2.item(child, "values")) for child in tree2.get_children())
+    for item in selected_items:
+        row_values = tree.item(item, "values")
+        col_indices = [columns.index(col) for col in needed_data]
+        filtered_values = tuple(row_values[i] for i in col_indices)
+        if filtered_values not in existing:
+            tree2.insert("", "end", values=filtered_values)
+            existing.add(filtered_values)
+
+# Place "+" button beside Load button
+add_btn = Button(
+    file_frame, text="↓", bg="#2e2e2e", fg="#0f0", font=("Arial", 14, "bold"),
+    activebackground="#555", activeforeground="#0f0", command=move_selected_to_second_table
+)
+add_btn.pack(side=LEFT, padx=(5,0))
+
+# --- "-" button: Remove selected rows from second table ---
+def remove_selected_from_second_table():
+    selected_items = tree2.selection()
+    for item in selected_items:
+        tree2.delete(item)
+
+remove_btn = Button(
+    file_frame, text="-", bg="#2e2e2e", fg="#f00", font=("Arial", 14, "bold"),
+    activebackground="#555", activeforeground="#f00", command=remove_selected_from_second_table
+)
+remove_btn.pack(side=LEFT, padx=(5,0))
 
 dataTelesignal = loadTelesignalData(selected_file.get() if selected_file.get() else listFiles[0])
 
-tree = ttk.Treeview(tree_frame, columns=columns, show="headings", height=30)
+# Treeview aka table (for imported data)
+tree = ttk.Treeview(tree_frame, columns=columns, show="headings", height=10)
 
 for col in columns:
     tree.heading(col, text=col)
@@ -75,6 +128,30 @@ hsb.grid(row=1, column=0, sticky="ew")
 
 tree_frame.grid_rowconfigure(0, weight=1)
 tree_frame.grid_columnconfigure(0, weight=1)
+
+
+# --- Second table (below the first one) ---
+tree_frame2 = Frame(frame, bg="#2e2e2e")
+tree_frame2.pack(fill="both", expand=True, pady=(10,0))
+
+tree2 = ttk.Treeview(tree_frame2, columns=needed_data, show="headings", height=10)
+for col in needed_data:
+    tree2.heading(col, text=col)
+    tree2.column(col, width=120)
+
+vsb2 = ttk.Scrollbar(tree_frame2, orient="vertical", command=tree2.yview)
+hsb2 = ttk.Scrollbar(tree_frame2, orient="horizontal", command=tree2.xview)
+tree2.configure(yscroll=vsb2.set, xscroll=hsb2.set)
+
+tree2.grid(row=0, column=0, sticky="nsew")
+vsb2.grid(row=0, column=1, sticky="ns")
+hsb2.grid(row=1, column=0, sticky="ew")
+
+tree_frame2.grid_rowconfigure(0, weight=1)
+tree_frame2.grid_columnconfigure(0, weight=1)
+
+
+
 
 
 # Style
