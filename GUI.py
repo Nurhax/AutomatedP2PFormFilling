@@ -150,8 +150,48 @@ hsb2.grid(row=1, column=0, sticky="ew")
 tree_frame2.grid_rowconfigure(0, weight=1)
 tree_frame2.grid_columnconfigure(0, weight=1)
 
+# --- Make cells editable on double-click ---
+def on_tree2_double_click(event):
+    region = tree2.identify("region", event.x, event.y)
+    if region != "cell":
+        return
+    row_id = tree2.identify_row(event.y)
+    col_id = tree2.identify_column(event.x)
+    if not row_id or not col_id:
+        return
 
+    col_index = int(col_id.replace("#", "")) - 1
+    col_name = needed_data[col_index]
+    x, y, width, height = tree2.bbox(row_id, col_id)
+    value = tree2.set(row_id, col_name)
 
+    # Create Entry widget overlay
+    entry = Entry(tree2, width=width//8, bg="#333", fg="#fff", borderwidth=0, highlightthickness=1, relief="flat")
+    entry.place(x=x, y=y, width=width, height=height)
+    entry.insert(0, value)
+    entry.focus_set()
+
+    def save_edit(event=None):
+        new_value = entry.get()
+        tree2.set(row_id, col_name, new_value)
+        entry.destroy()
+
+    def cancel_edit(event=None):
+        entry.destroy()
+
+    entry.bind("<Return>", save_edit)
+    entry.bind("<FocusOut>", save_edit)
+    entry.bind("<Escape>", cancel_edit)
+
+tree2.bind("<Double-1>", on_tree2_double_click)
+
+# --- Export button (does nothing yet) ---
+export_btn = Button(
+    frame, text="Export", bg="#444", fg="#fff",
+    activebackground="#555", activeforeground="#fff",
+    font=("Arial", 12, "bold")
+)
+export_btn.pack(anchor="e", pady=(10, 0))
 
 
 # Style
